@@ -1,0 +1,341 @@
+# 创建一个新的 people 索引， 
+PUT http://127.0.0.1:9200/book
+Content-Type: application/json
+
+{
+  "settings": {
+    "number_of_shards": 3,
+    "number_of_replicas": 1
+  },
+  "mappings": {
+    "properties": {
+      "word_count": {
+        "type": "integer"
+      },
+      "author": {
+        "type": "keyword"
+      },
+      "title": {
+        "type": "text"
+      },
+      "publish_date": {
+        "type": "date",
+        "format": "yyyy-MM-dd HH:mm:ss || yyyy-MM-dd || epoch_millis"
+      }
+    }
+  }
+}
+
+
+###  向 people索引中插入一条  指定ID的数据，注意请求方式为 PUT
+# 路径格式为 http://<ip>:<port>/<索引>/_doc/<文档ID>，下面我们插入了一条 ID 为 1 的数据
+PUT http://127.0.0.1:9200/book/_doc/11
+Content-Type: application/json
+
+{
+  "word_count": "11000",
+  "author": "作者11",
+  "title": "标题11",
+  "publish_date": "2019-11-11"
+}
+
+
+
+###  向 people索引中插入一条  自动生成ID的数据，注意，请求方式为 POST，并删除URL末尾的 ID
+POST http://127.0.0.1:9200/people/_doc/
+Content-Type: application/json
+
+{
+  "type": "man",
+  "name": "AutoZereao",
+  "country": "China",
+  "age": "23",
+  "date": "1995-11-27 12:25:35"
+}
+
+
+###  修改 ID 为 1 的文档的 name 字段值为 UpdateZereao，格式：{index}/_update/{id}
+POST http://127.0.0.1:9200/book/_update/3/
+Content-Type: application/json
+
+{
+  "doc": {
+    "author": "瓦力"
+  }
+}
+
+
+###  删除 people索引中 ID = 1 的文档
+DELETE http://127.0.0.1:9200/people/_doc/RAEkGm0BUlFqoIA5Ds3r/
+Content-Type: application/json
+
+
+
+###  删除 people 索引
+DELETE http://127.0.0.1:9200/people
+Content-Type: application/json
+
+###  简单查询，查询 book 索引中，ID为1 的文档
+GET http://127.0.0.1:9200/book/_doc/1
+Content-Type: application/json
+
+
+### 条件查询，查询所有数据
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "match_all": {}
+  },
+  "from": 0,
+  "size": 1
+}
+
+
+### 条件查询，查询标题中包含 "标题" 字的文档
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "match": {
+      "title": "标题"
+    }
+  }
+}
+
+### 条件查询，查询标题等于 "测试" 字的文档
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "match_phrase": {
+      "title": "测试"
+    }
+  }
+}
+
+### 条件查询，多个字段模糊匹配查询
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "multi_match": {
+      "query": "测试",
+      "fields": [
+        "author",
+        "title"
+      ]
+    }
+  }
+}
+
+
+### 条件查询，指定排序方式为 按照 publish_date 降序 排序
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "match": {
+      "title": "标题"
+    }
+  },
+  "sort": [
+    {
+      "publish_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+
+###   聚合查询，按照 这一批 book 的字数进行聚合；  这是一个单个分组聚合
+POST http://10.247.63.97:9200/book/_search
+Content-Type: application/json
+
+{
+  "aggs": {
+    "group_by_word_count": {
+      "terms": {
+        "field": "word_count"
+      }
+    }
+  }
+}
+
+
+###   聚合查询，按照 这一批 book 的字数进行聚合；  这是一个单个分组聚合
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "aggs": {
+    "group_by_word_count": {
+      "terms": {
+        "field": "word_count"
+      }
+    }
+  }
+}
+
+
+###   聚合查询，按照 这一批 book 的字数和出版日期进行聚合；  这是一个多个分组聚合
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "aggs": {
+    "group_by_word_count": {
+      "terms": {
+        "field": "word_count"
+      }
+    },
+    "group_by_publish_date": {
+      "terms": {
+        "field": "publish_date"
+      }
+    }
+  }
+}
+
+
+
+###   聚合查询，计算 word_count 字段的相关数据
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "aggs": {
+    "grades_word_count": {
+      "stats": {
+        "field": "word_count"
+      }
+    }
+  }
+}
+
+### 高级查询 
+
+### query_string 语法查询 
+### 语法查询是一种根据一定的语法规则进行的查询，做数据搜索用的，支持 通配符 范围查询，布尔查询， 正则表达式中
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "query_string": {
+//      "query": "(ElasticSearch AND 大法) OR Python"
+    "query": "瓦力 OR ElasticSearch",
+    "fields": ["title", "author"]
+    }
+  }
+}
+
+### 字段的查询 结构化数据的查询
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "range": {
+      "publish_date": {
+        "gt": "2019-05-01",
+        "lte": "now"
+      }
+    }
+  }
+}
+
+### Filter context 在查询过程中，只判断该文档是否满足条件， 只有Yes和No
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "bool": {
+      "filter": {
+        "term": {
+          "word_count": 1000
+        }
+      }
+    }
+  }
+}
+
+### 复合查询，固定分数查询
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "constant_score": {
+      "filter": {
+        "match": {
+          "title": "ElasticSearch"
+        }
+      },
+      "boots": 2
+    }
+  }
+}
+
+### 布尔查询
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+            "author": "瓦力"
+          }
+        },
+        {
+          "match": {
+            "title": "ElasticSearch"
+          }
+        }
+      ],
+      "filter": [
+        {
+          "term": {
+            "word_count": 1000
+          }
+        }
+      ]
+    }
+  }
+}
+
+###
+POST http://127.0.0.1:9200/book/_search
+Content-Type: application/json
+
+{
+  "query": {
+    "bool": {
+      // must_not 
+      "must": [
+        {
+          "match": {
+            "author": "瓦力"
+          }
+        },
+        {
+          "match": {
+            "title": "ElasticSearch"
+          }
+        }
+      ]
+    }
+  }
+}
+
+###
